@@ -151,7 +151,7 @@ const UserSync = {
         this._dataWatchersEnabled = true;
 
         // Storage の各保存メソッドをラップ
-        const methods = ['saveSale', 'updateSale', 'deleteSale', 'saveMaterial', 'updateMaterial', 'deleteMaterial', 'saveGoal', 'saveSettings', 'saveFavoriteMaterials'];
+        const methods = ['saveSale', 'updateSale', 'deleteSale', 'saveMaterial', 'updateMaterial', 'deleteMaterial', 'saveGoal', 'saveSettings', 'saveFavoriteMaterials', 'saveCustomShipping', 'saveCustomPlatforms'];
 
         methods.forEach(method => {
             const original = Storage[method];
@@ -352,6 +352,19 @@ const UserSync = {
             merged.favoriteMaterials = [...new Set([...localFavs, ...remoteFavs])];
         }
         
+        // カスタム送料のマージ（ローカル優先）
+        if (localData.customShipping || remoteData.customShipping) {
+            merged.customShipping = { ...(remoteData.customShipping || {}), ...(localData.customShipping || {}) };
+        }
+
+        // カスタムプラットフォームのマージ（IDベース）
+        if (localData.customPlatforms || remoteData.customPlatforms) {
+            const platformMap = new Map();
+            (remoteData.customPlatforms || []).forEach(p => platformMap.set(p.id, p));
+            (localData.customPlatforms || []).forEach(p => platformMap.set(p.id, p));
+            merged.customPlatforms = Array.from(platformMap.values());
+        }
+
         // 記録データのマージ（より良い記録を保持）
         if (localData.records && remoteData.records) {
             merged.records = {
