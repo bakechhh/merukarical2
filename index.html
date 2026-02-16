@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ff0211">
+    <meta name="description" content="フリマ売却の実質手取りを計算・管理するツール">
+    <title>フリマ売却管理</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧮</text></svg>">
+</head>
+<body>
+    <div id="offline-banner" class="offline-banner">
+        オフラインです - データはローカルに保存されます
+        <span id="offline-queue-count"></span>
+    </div>
+    <div id="app">
+        <!-- ヘッダー -->
+        <header>
+            <h1>フリマ売却管理</h1>
+            <button id="theme-toggle" class="icon-btn" aria-label="テーマ切替">🌓</button>
+            <div id="user-section" style="display: flex; align-items: center; gap: 0.5rem;">
+                <span id="user-id-display" style="color: white; font-size: 0.9rem;"></span>
+                <button id="sync-status-btn" class="icon-btn" aria-label="同期状態">☁️</button>
+            </div>
+        </header>
+
+        <!-- タブナビゲーション -->
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="dashboard">ホーム</button>
+            <button class="tab-btn" data-tab="calculator">計算</button>
+            <button class="tab-btn" data-tab="history">履歴</button>
+            <button class="tab-btn" data-tab="materials">材料</button>
+            <button class="tab-btn" data-tab="calendar">カレンダー</button>
+            <button class="tab-btn" data-tab="goals">目標</button>
+            <button class="tab-btn" data-tab="settings">設定</button>
+        </nav>
+
+        <!-- メインコンテンツ -->
+        <main>
+            <!-- ダッシュボードタブ -->
+            <div id="dashboard-tab" class="tab-content active">
+                <div id="dashboard-content">
+                    <h2 class="dashboard-greeting">こんにちは</h2>
+
+                    <div class="dashboard-section">
+                        <h3 class="dashboard-section-title">今日の売上</h3>
+                        <div class="dashboard-cards">
+                            <div class="dashboard-card">
+                                <span class="dashboard-card-label">販売数</span>
+                                <span class="dashboard-card-value" id="dash-today-count">0件</span>
+                            </div>
+                            <div class="dashboard-card">
+                                <span class="dashboard-card-label">売上</span>
+                                <span class="dashboard-card-value" id="dash-today-sales">¥0</span>
+                            </div>
+                            <div class="dashboard-card">
+                                <span class="dashboard-card-label">手取り</span>
+                                <span class="dashboard-card-value" id="dash-today-profit">¥0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-section">
+                        <h3 class="dashboard-section-title">今月のサマリー</h3>
+                        <div class="dashboard-cards">
+                            <div class="dashboard-card">
+                                <span class="dashboard-card-label">販売数</span>
+                                <span class="dashboard-card-value" id="dash-month-count">0件</span>
+                            </div>
+                            <div class="dashboard-card">
+                                <span class="dashboard-card-label">売上</span>
+                                <span class="dashboard-card-value" id="dash-month-sales">¥0</span>
+                            </div>
+                            <div class="dashboard-card">
+                                <span class="dashboard-card-label">手取り</span>
+                                <span class="dashboard-card-value" id="dash-month-profit">¥0</span>
+                            </div>
+                            <div class="dashboard-card">
+                                <span class="dashboard-card-label">平均残存率</span>
+                                <span class="dashboard-card-value" id="dash-month-avg">0%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-section">
+                        <h3 class="dashboard-section-title">月間目標</h3>
+                        <div class="dashboard-goal">
+                            <div class="dashboard-goal-bar">
+                                <div class="dashboard-goal-fill" id="dash-goal-fill" style="width: 0%"></div>
+                            </div>
+                            <div class="dashboard-goal-info">
+                                <span id="dash-goal-percent">0%</span>
+                                <span id="dash-goal-amount">目標未設定</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-section">
+                        <h3 class="dashboard-section-title">最近の売上</h3>
+                        <div id="dash-recent-list"></div>
+                    </div>
+
+                    <div class="dashboard-section">
+                        <h3 class="dashboard-section-title">ベストセールス日</h3>
+                        <div class="dashboard-cards">
+                            <div class="dashboard-card">
+                                <span class="dashboard-card-label">日付</span>
+                                <span class="dashboard-card-value" id="dash-best-day">-</span>
+                            </div>
+                            <div class="dashboard-card">
+                                <span class="dashboard-card-label">売上</span>
+                                <span class="dashboard-card-value" id="dash-best-amount">¥0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 計算タブ -->
+            <div id="calculator-tab" class="tab-content">
+                <form id="calc-form">
+                    <div class="form-group">
+                        <label for="product-name">商品名</label>
+                        <input type="text" id="product-name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sale-date">売却日</label>
+                        <input type="date" id="sale-date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="selling-price">売却価格（円）</label>
+                        <input type="number" id="selling-price" required min="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label>材料費</label>
+                        <div id="material-inputs">
+                            <div class="material-input-row">
+                                <select class="material-select">
+                                    <option value="">材料を選択</option>
+                                </select>
+                                <input type="number" class="material-quantity" placeholder="数量" min="0" step="1">
+                                <input type="number" class="material-price" placeholder="単価" min="0" step="0.01">
+                                <button type="button" class="remove-material-btn">×</button>
+                            </div>
+                        </div>
+                        <button type="button" id="add-material-btn" class="secondary-btn">+ 材料追加</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="shipping-fee">送料（円）</label>
+                        <div class="shipping-templates" id="shipping-templates"></div>
+                        <input type="number" id="shipping-fee" required min="0" value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="indirect-costs">間接費用（梱包材等）（円）</label>
+                        <input type="number" id="indirect-costs" min="0" value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="platform">販売プラットフォーム</label>
+                        <select id="platform">
+                            <option value="mercari" data-rate="10">メルカリ（手数料10%）</option>
+                            <option value="yahoo" data-rate="5">Yahoo!フリマ（手数料5%）</option>
+                            <option value="custom" data-rate="">カスタム</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="commission-rate">手数料率（%）</label>
+                        <input type="number" id="commission-rate" required min="0" max="100" value="10" step="0.1">
+                    </div>
+
+                    <div class="result-box">
+                        <h3>計算結果</h3>
+                        <div class="result-item">
+                            <span>売却価格：</span>
+                            <span id="result-price">¥0</span>
+                        </div>
+                        <div class="result-item">
+                            <span>手数料：</span>
+                            <span id="result-commission">-¥0</span>
+                        </div>
+                        <div class="result-item">
+                            <span>材料費：</span>
+                            <span id="result-material">-¥0</span>
+                        </div>
+                        <div class="result-item">
+                            <span>送料：</span>
+                            <span id="result-shipping">-¥0</span>
+                        </div>
+                        <div class="result-item">
+                            <span>間接費用：</span>
+                            <span id="result-indirect">-¥0</span>
+                        </div>
+                        <div class="result-item total">
+                            <span>実質手取り：</span>
+                            <span id="result-net">¥0</span>
+                        </div>
+                        <div class="result-item">
+                            <span>残存率：</span>
+                            <span id="result-profit-rate">0%</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="primary-btn">保存</button>
+                </form>
+
+                <!-- 逆算シミュレーション -->
+                <div class="reverse-calc-section">
+                    <button type="button" id="reverse-calc-toggle" class="secondary-btn">逆算シミュレーション ▼</button>
+                    <div id="reverse-calc-panel" class="reverse-calc-panel" style="display: none;">
+                        <div class="form-group">
+                            <label for="target-income">目標手取り額（円）</label>
+                            <input type="number" id="target-income" min="0" placeholder="目標手取り額を入力">
+                        </div>
+                        <div class="reverse-calc-result" id="reverse-calc-result">
+                            <div class="result-item">
+                                <span>必要売却価格：</span>
+                                <span id="reverse-price">¥0</span>
+                            </div>
+                            <div class="result-item">
+                                <span>手数料：</span>
+                                <span id="reverse-commission">-¥0</span>
+                            </div>
+                            <div class="result-item">
+                                <span>材料費：</span>
+                                <span id="reverse-material">-¥0</span>
+                            </div>
+                            <div class="result-item">
+                                <span>送料：</span>
+                                <span id="reverse-shipping">-¥0</span>
+                            </div>
+                            <div class="result-item">
+                                <span>間接費用：</span>
+                                <span id="reverse-indirect">-¥0</span>
+                            </div>
+                            <div class="result-item total">
+                                <span>目標手取り：</span>
+                                <span id="reverse-net">¥0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 履歴タブ -->
+            <div id="history-tab" class="tab-content">
+                <div class="history-header">
+                    <input type="text" id="history-search" placeholder="検索...">
+                    <select id="history-platform-filter">
+                        <option value="all">すべて</option>
+                        <option value="mercari">メルカリ</option>
+                        <option value="yahoo">Yahoo!フリマ</option>
+                    </select>
+                    <select id="history-filter">
+                        <option value="all">すべて</option>
+                        <option value="week">今週</option>
+                        <option value="month">今月</option>
+                        <option value="year">今年</option>
+                    </select>
+                </div>
+                <div id="history-summary" class="summary-box">
+                    <div class="summary-item">
+                        <span>合計売上：</span>
+                        <span id="total-sales">¥0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>合計手取り：</span>
+                        <span id="total-profit">¥0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>平均残存率：</span>
+                        <span id="avg-profit-rate">0%</span>
+                    </div>
+                </div>
+                <div id="history-list"></div>
+            </div>
+
+            <!-- 材料タブ -->
+            <div id="materials-tab" class="tab-content">
+                <button id="add-new-material" class="primary-btn">+ 新規材料追加</button>
+                <div id="material-form" class="modal" style="display: none;">
+                    <div class="modal-content">
+                        <h3>材料登録</h3>
+                        <form id="material-register-form">
+                            <div class="form-group">
+                                <label for="material-name">材料名</label>
+                                <input type="text" id="material-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="material-category">カテゴリー</label>
+                                <input type="text" id="material-category" placeholder="例: パーツ、素材">
+                            </div>
+                            <div class="form-group">
+                                <label for="material-unit-price">単価（円）※自動計算</label>
+                                <input type="number" id="material-unit-price" required min="0" step="0.01">
+                            </div>
+                            <div class="form-group">
+                                <label for="material-unit">単位</label>
+                                <input type="text" id="material-unit" placeholder="例: 個、g、ml" value="個">
+                            </div>
+                            <div class="form-group">
+                                <label for="material-purchase-quantity">購入時総数量</label>
+                                <input type="number" id="material-purchase-quantity" min="1" step="1">
+                            </div>
+                            <div class="form-group">
+                                <label for="material-purchase-price">購入時総額（円）</label>
+                                <input type="number" id="material-purchase-price" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="material-shipping">購入時送料（円）</label>
+                                <input type="number" id="material-shipping" min="0" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="material-stock">在庫数</label>
+                                <input type="number" id="material-stock" min="0" step="1" placeholder="在庫数を入力（任意）">
+                            </div>
+                            <div class="calculated-price">
+                                計算単価: <span id="calculated-unit-price">¥0</span> / <span id="calculated-unit">個</span>
+                            </div>
+                            <div class="modal-actions two-buttons">
+                                <button type="submit" class="primary-btn">保存</button>
+                                <button type="button" class="secondary-btn" onclick="closeMaterialForm()">キャンセル</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div id="materials-list"></div>
+            </div>
+
+            <!-- カレンダータブ -->
+            <div id="calendar-tab" class="tab-content">
+                <div class="calendar-header">
+                    <button class="month-nav-btn" id="cal-prev-month">←</button>
+                    <h2 id="cal-current-month">2024年1月</h2>
+                    <button class="month-nav-btn" id="cal-next-month">→</button>
+                </div>
+            
+                <div class="calendar-summary">
+                    <div class="summary-card">
+                        <span class="summary-label">営業日数</span>
+                        <span class="summary-value" id="cal-business-days">0日</span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-label">日平均売上</span>
+                        <span class="summary-value" id="cal-daily-average">¥0</span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-label">最高売上日</span>
+                        <span class="summary-value" id="cal-best-day">-</span>
+                    </div>
+                </div>
+            
+                <div class="calendar-container">
+                    <div class="calendar-weekdays">
+                        <div class="weekday">日</div>
+                        <div class="weekday">月</div>
+                        <div class="weekday">火</div>
+                        <div class="weekday">水</div>
+                        <div class="weekday">木</div>
+                        <div class="weekday">金</div>
+                        <div class="weekday">土</div>
+                    </div>
+                    <div id="calendar-grid" class="calendar-grid">
+                        <!-- カレンダーの日付がここに生成される -->
+                    </div>
+                </div>
+            
+                <!-- 日別詳細モーダル -->
+                <div id="day-detail-modal" class="modal" style="display: none;">
+                    <div class="modal-content">
+                        <h3 id="day-detail-title">2024年1月1日の売上</h3>
+                        <div id="day-sales-list"></div>
+                        <div class="day-total">
+                            <span>合計：</span>
+                            <span id="day-total-amount">¥0</span>
+                        </div>
+                        <div class="modal-actions">
+                            <button class="secondary-btn" onclick="Calendar.closeDayDetail()">閉じる</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 目標タブ -->
+            <div id="goals-tab" class="tab-content">
+                <div class="goals-header">
+                    <button class="month-nav-btn" id="prev-month">←</button>
+                    <h2 id="current-month-display">2024年1月</h2>
+                    <button class="month-nav-btn" id="next-month">→</button>
+                </div>
+
+                <div class="goal-setting-section">
+                    <div class="goal-amount-display">
+                        <span class="goal-label">月間目標</span>
+                        <div class="goal-amount" id="goal-amount-display">¥0</div>
+                        <button class="edit-goal-btn" id="edit-goal-btn">目標を設定</button>
+                    </div>
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-circle-container">
+                        <svg class="progress-circle" width="200" height="200">
+                            <circle class="progress-bg" cx="100" cy="100" r="85"></circle>
+                            <circle class="progress-fill" cx="100" cy="100" r="85"></circle>
+                        </svg>
+                        <div class="progress-text">
+                            <div class="progress-percentage">0%</div>
+                            <div class="progress-label">達成率</div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-details">
+                        <div class="detail-card">
+                            <div class="detail-label">今月の売上</div>
+                            <div class="detail-value" id="current-sales">¥0</div>
+                        </div>
+                        <div class="detail-card">
+                            <div class="detail-label">目標まで</div>
+                            <div class="detail-value" id="remaining-amount">¥0</div>
+                        </div>
+                        <div class="detail-card">
+                            <div class="detail-label">販売回数</div>
+                            <div class="detail-value" id="sales-count">0回</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="records-section">
+                    <h3>🏆 最高記録</h3>
+                    <div class="records-grid">
+                        <div class="record-card">
+                            <div class="record-icon">💰</div>
+                            <div class="record-title">月間最高売上</div>
+                            <div class="record-value" id="max-sales">¥0</div>
+                            <div class="record-date" id="max-sales-date">-</div>
+                        </div>
+                        <div class="record-card">
+                            <div class="record-icon">📦</div>
+                            <div class="record-title">月間最多販売</div>
+                            <div class="record-value" id="max-count">0回</div>
+                            <div class="record-date" id="max-count-date">-</div>
+                        </div>
+                        <div class="record-card">
+                            <div class="record-icon">🎯</div>
+                            <div class="record-title">最高達成率</div>
+                            <div class="record-value" id="max-rate">0%</div>
+                            <div class="record-date" id="max-rate-date">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-section">
+                    <h3>📊 売上推移</h3>
+                    <canvas id="sales-chart" width="300" height="200"></canvas>
+                </div>
+            </div>
+
+            <!-- 設定タブ -->
+            <div id="settings-tab" class="tab-content">
+                <div class="settings-section">
+                    <h3>データ管理</h3>
+                    <button id="export-json" class="primary-btn">データをエクスポート (JSON)</button>
+                    <button id="import-json" class="secondary-btn">データをインポート (JSON)</button>
+                    <input type="file" id="import-file" accept=".json" style="display: none;">
+                    <button id="export-csv" class="primary-btn">履歴をCSV出力</button>
+                    <button id="clear-data" class="danger-btn">全データを削除</button>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>デフォルト設定</h3>
+                    <div class="form-group">
+                        <label for="default-platform">デフォルト販売先</label>
+                        <select id="default-platform">
+                            <option value="mercari">メルカリ（手数料10%）</option>
+                            <option value="yahoo">Yahoo!フリマ（手数料5%）</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="default-commission">デフォルト手数料率（%）</label>
+                        <input type="number" id="default-commission" min="0" max="100" step="0.1" value="10">
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>PWA設定</h3>
+                    <button id="install-pwa" class="primary-btn" style="display: none;">ホーム画面に追加</button>
+                    <p class="info-text">このアプリをホーム画面に追加すると、通常のアプリのように使用できます。</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 目標設定モーダル -->
+    <div id="goal-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>月間目標を設定</h3>
+            <form id="goal-form">
+                <div class="form-group">
+                    <label for="goal-input">目標金額（円）</label>
+                    <input type="number" id="goal-input" min="0" step="1000" required>
+                    <div class="goal-suggestions">
+                        <p>参考：前月実績 <span id="last-month-sales">¥0</span></p>
+                        <div class="suggestion-buttons">
+                            <button type="button" class="suggestion-btn" data-amount="30000">¥30,000</button>
+                            <button type="button" class="suggestion-btn" data-amount="50000">¥50,000</button>
+                            <button type="button" class="suggestion-btn" data-amount="100000">¥100,000</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions two-buttons">
+                    <button type="submit" class="primary-btn">設定</button>
+                    <button type="button" class="secondary-btn" id="close-goal-modal">キャンセル</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="sync-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>データ同期設定</h3>
+            
+            <div class="form-group">
+                <label>あなたのID</label>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="text" id="current-user-id" readonly style="flex: 1;">
+                    <button onclick="UserSync.copyUserId()" class="secondary-btn">コピー</button>
+                </div>
+                <p class="info-text">このIDを保存しておくと、別の端末からもデータにアクセスできます</p>
+            </div>
+            
+            <div class="form-group">
+                <label>別のIDでログイン</label>
+                <input type="text" id="login-user-id" placeholder="6文字のIDを入力">
+                <button onclick="UserSync.loginWithId()" class="primary-btn" style="margin-top: 0.5rem;">ログイン</button>
+            </div>
+            
+            <div class="form-group">
+                <h4>同期状態</h4>
+                <div id="sync-status" class="sync-status">
+                    <span id="sync-status-text">未接続</span>
+                    <span id="last-sync-time"></span>
+                </div>
+                <button id="manual-sync-btn" onclick="UserSync.manualSync()" class="primary-btn">今すぐ同期</button>
+            </div>
+            
+            <p class="info-text">自動同期は常に有効です。データの変更は自動的にクラウドに保存されます。</p>
+
+            <button onclick="UserSync.closeModal()" class="secondary-btn">閉じる</button>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/env-config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/calculator.js"></script>
+    <script src="js/materials.js"></script>
+    <script src="js/history.js"></script>
+    <script src="js/export.js"></script>
+    <script src="js/goals.js"></script>
+    <script src="js/effects.js"></script>
+    <script src="js/user-sync.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/calendar.js"></script>
+    <canvas id="confetti-canvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; display: none;"></canvas>
+    
+</body>
+</html>
