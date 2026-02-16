@@ -25,6 +25,7 @@ const Calculator = {
 
     init() {
         this.form = document.getElementById('calc-form');
+        this.renderPlatformOptions();
         this.setupEventListeners();
         this.loadDefaults();
         this.addMaterialRow(); // 初期材料行
@@ -118,18 +119,94 @@ const Calculator = {
 
         // デフォルトプラットフォームを設定
         const defaultPlatform = settings.defaultPlatform || 'mercari';
-        platformSelect.value = defaultPlatform;
-        this.onPlatformChange(defaultPlatform);
+        if (platformSelect.querySelector(`option[value="${defaultPlatform}"]`)) {
+            platformSelect.value = defaultPlatform;
+        }
+        this.onPlatformChange(platformSelect.value);
+
+        // デフォルト間接費用
+        if (settings.defaultIndirectCosts) {
+            const indirectInput = document.getElementById('indirect-costs');
+            if (indirectInput && !this.editingId) {
+                indirectInput.value = settings.defaultIndirectCosts;
+            }
+        }
+
+        // デフォルト商品名プレフィックス
+        if (settings.defaultProductName) {
+            const nameInput = document.getElementById('product-name');
+            if (nameInput && !nameInput.value && !this.editingId) {
+                nameInput.value = settings.defaultProductName;
+            }
+        }
+
+        // デフォルト送料
+        if (settings.defaultShippingFee) {
+            const shippingInput = document.getElementById('shipping-fee');
+            if (shippingInput && !this.editingId) {
+                shippingInput.value = settings.defaultShippingFee;
+            }
+        }
+    },
+
+    renderPlatformOptions() {
+        const platformSelect = document.getElementById('platform');
+        const defaultPlatformSelect = document.getElementById('default-platform');
+        const customPlatforms = Storage.getCustomPlatforms();
+
+        const builtInOptions = [
+            { value: 'mercari', label: 'メルカリ（手数料10%）', rate: 10 },
+            { value: 'yahoo', label: 'Yahoo!フリマ（手数料5%）', rate: 5 }
+        ];
+
+        const allOptions = [
+            ...builtInOptions,
+            ...customPlatforms.map(p => ({
+                value: p.id,
+                label: `${p.name}（手数料${p.rate}%）`,
+                rate: p.rate
+            })),
+            { value: 'custom', label: 'カスタム', rate: '' }
+        ];
+
+        const currentValue = platformSelect.value;
+
+        platformSelect.innerHTML = allOptions.map(o =>
+            `<option value="${o.value}" data-rate="${o.rate}">${o.label}</option>`
+        ).join('');
+
+        // 現在の値を復元
+        if (currentValue && platformSelect.querySelector(`option[value="${currentValue}"]`)) {
+            platformSelect.value = currentValue;
+        }
+
+        // 設定画面のデフォルトプラットフォームセレクトも更新
+        if (defaultPlatformSelect) {
+            const defaultCurrent = defaultPlatformSelect.value;
+            defaultPlatformSelect.innerHTML = allOptions.filter(o => o.value !== 'custom').map(o =>
+                `<option value="${o.value}">${o.label}</option>`
+            ).join('');
+            if (defaultCurrent && defaultPlatformSelect.querySelector(`option[value="${defaultCurrent}"]`)) {
+                defaultPlatformSelect.value = defaultCurrent;
+            }
+        }
     },
 
     onPlatformChange(platform) {
         const commissionInput = document.getElementById('commission-rate');
         const platformRates = { mercari: 10, yahoo: 5 };
 
+        // カスタムプラットフォームの手数料率も対応
+        const customPlatforms = Storage.getCustomPlatforms();
+        const customPlatform = customPlatforms.find(p => p.id === platform);
+
         if (platform === 'custom') {
             commissionInput.readOnly = false;
             commissionInput.value = '';
             commissionInput.focus();
+        } else if (customPlatform) {
+            commissionInput.readOnly = false;
+            commissionInput.value = customPlatform.rate;
         } else {
             commissionInput.readOnly = false;
             commissionInput.value = platformRates[platform] || 10;
@@ -138,20 +215,51 @@ const Calculator = {
         this.calculate();
     },
 
+    getShippingTemplates(platform) {
+        // デフォルトテンプレートを取得
+        const defaults = this.shippingTemplates[platform] || [];
+        const customShipping = Storage.getCustomShipping();
+        const customForPlatform = customShipping[platform] || [];
+
+        // hidden情報を取得（デフォルトプリセットの非表示設定）
+        const hiddenDefaults = customShipping[`${platform}_hidden`] || [];
+
+        // デフォルトテンプレートにhiddenフラグを付与
+        const defaultTemplates = defaults.map((t, i) => ({
+            ...t,
+            isDefault: true,
+            hidden: hiddenDefaults.includes(i),
+            index: i
+        }));
+
+        // カスタムテンプレート
+        const customTemplates = customForPlatform.map((t, i) => ({
+            ...t,
+            isDefault: false,
+            isCustom: true,
+            index: i
+        }));
+
+        return [...defaultTemplates, ...customTemplates];
+    },
+
     renderShippingTemplates() {
         const container = document.getElementById('shipping-templates');
         if (!container) return;
 
         const platform = document.getElementById('platform').value;
-        const templates = this.shippingTemplates[platform];
+        const templates = this.getShippingTemplates(platform);
 
-        if (!templates) {
+        // 非表示でないテンプレートのみ表示
+        const visibleTemplates = templates.filter(t => !t.hidden);
+
+        if (visibleTemplates.length === 0) {
             container.innerHTML = '';
             return;
         }
 
-        container.innerHTML = templates.map(t =>
-            `<button type="button" class="shipping-template-btn" data-fee="${t.fee}">${t.name} ¥${t.fee.toLocaleString()}</button>`
+        container.innerHTML = visibleTemplates.map(t =>
+            `<button type="button" class="shipping-template-btn${t.isCustom ? ' custom-template' : ''}" data-fee="${t.fee}">${t.name} ¥${t.fee.toLocaleString()}</button>`
         ).join('');
 
         container.querySelectorAll('.shipping-template-btn').forEach(btn => {

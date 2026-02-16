@@ -6,7 +6,9 @@ const Storage = {
         THEME: 'mercari_theme',
         GOALS: 'mercari_goals',
         RECORDS: 'mercari_records',
-        FAVORITE_MATERIALS: 'mercari_favorite_materials'
+        FAVORITE_MATERIALS: 'mercari_favorite_materials',
+        CUSTOM_SHIPPING: 'mercari_custom_shipping',
+        CUSTOM_PLATFORMS: 'mercari_custom_platforms'
     },
 
     // 売却データ
@@ -98,14 +100,40 @@ const Storage = {
         return favorites;
     },
 
+    // カスタム送料プリセット
+    getCustomShipping() {
+        const data = localStorage.getItem(this.KEYS.CUSTOM_SHIPPING);
+        return data ? JSON.parse(data) : {};
+    },
+
+    saveCustomShipping(data) {
+        localStorage.setItem(this.KEYS.CUSTOM_SHIPPING, JSON.stringify(data));
+        return data;
+    },
+
+    // カスタムプラットフォーム
+    getCustomPlatforms() {
+        const data = localStorage.getItem(this.KEYS.CUSTOM_PLATFORMS);
+        return data ? JSON.parse(data) : [];
+    },
+
+    saveCustomPlatforms(platforms) {
+        localStorage.setItem(this.KEYS.CUSTOM_PLATFORMS, JSON.stringify(platforms));
+        return platforms;
+    },
+
     // 設定
     getSettings() {
         const data = localStorage.getItem(this.KEYS.SETTINGS);
-        return data ? JSON.parse(data) : {
+        const defaults = {
             defaultCommissionRate: 10,
             defaultPlatform: 'mercari',
-            currency: 'JPY'
+            currency: 'JPY',
+            defaultIndirectCosts: 0,
+            defaultProductName: '',
+            defaultShippingFee: 0
         };
+        return data ? { ...defaults, ...JSON.parse(data) } : defaults;
     },
 
     saveSettings(settings) {
@@ -172,8 +200,10 @@ const Storage = {
             goals: this.getGoals(),
             records: this.getRecords(),
             favoriteMaterials: this.getFavoriteMaterials(),
+            customShipping: this.getCustomShipping(),
+            customPlatforms: this.getCustomPlatforms(),
             exportDate: new Date().toISOString(),
-            version: '1.2'
+            version: '1.3'
         };
     },
 
@@ -198,6 +228,12 @@ const Storage = {
             }
             if (data.favoriteMaterials) {
                 localStorage.setItem(this.KEYS.FAVORITE_MATERIALS, JSON.stringify(data.favoriteMaterials));
+            }
+            if (data.customShipping) {
+                localStorage.setItem(this.KEYS.CUSTOM_SHIPPING, JSON.stringify(data.customShipping));
+            }
+            if (data.customPlatforms) {
+                localStorage.setItem(this.KEYS.CUSTOM_PLATFORMS, JSON.stringify(data.customPlatforms));
             }
             return true;
         } catch (error) {

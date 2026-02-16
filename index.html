@@ -166,9 +166,6 @@
                     <div class="form-group">
                         <label for="platform">販売プラットフォーム</label>
                         <select id="platform">
-                            <option value="mercari" data-rate="10">メルカリ（手数料10%）</option>
-                            <option value="yahoo" data-rate="5">Yahoo!フリマ（手数料5%）</option>
-                            <option value="custom" data-rate="">カスタム</option>
                         </select>
                     </div>
 
@@ -258,6 +255,7 @@
                         <option value="all">すべて</option>
                         <option value="mercari">メルカリ</option>
                         <option value="yahoo">Yahoo!フリマ</option>
+                        <option value="custom">カスタム</option>
                     </select>
                     <select id="history-filter">
                         <option value="all">すべて</option>
@@ -486,6 +484,49 @@
                     <div class="form-group">
                         <label for="default-commission">デフォルト手数料率（%）</label>
                         <input type="number" id="default-commission" min="0" max="100" step="0.1" value="10">
+                    </div>
+                    <div class="form-group">
+                        <label for="default-indirect-costs">デフォルト間接費用（円）</label>
+                        <input type="number" id="default-indirect-costs" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="default-product-name">デフォルト商品名（プレフィックス）</label>
+                        <input type="text" id="default-product-name" placeholder="例: 【ハンドメイド】">
+                    </div>
+                    <div class="form-group">
+                        <label for="default-shipping-fee">デフォルト送料（円）</label>
+                        <input type="number" id="default-shipping-fee" min="0" value="0">
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>送料プリセット管理</h3>
+                    <div class="shipping-settings-tabs">
+                        <button type="button" class="shipping-tab-btn active" data-shipping-platform="mercari">メルカリ</button>
+                        <button type="button" class="shipping-tab-btn" data-shipping-platform="yahoo">ヤフオク</button>
+                        <span id="custom-platform-shipping-tabs"></span>
+                    </div>
+                    <div id="shipping-preset-list" class="preset-list"></div>
+                    <div class="preset-add-form">
+                        <h4>カスタムプリセット追加</h4>
+                        <div class="preset-add-row">
+                            <input type="text" id="new-shipping-name" placeholder="名前（例: レターパック）">
+                            <input type="number" id="new-shipping-fee" placeholder="金額" min="0">
+                            <button type="button" id="add-shipping-preset-btn" class="primary-btn">追加</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>プラットフォーム管理</h3>
+                    <div id="custom-platform-list" class="preset-list"></div>
+                    <div class="preset-add-form">
+                        <h4>カスタムプラットフォーム追加</h4>
+                        <div class="preset-add-row">
+                            <input type="text" id="new-platform-name" placeholder="名前（例: ラクマ）">
+                            <input type="number" id="new-platform-rate" placeholder="手数料率(%)" min="0" max="100" step="0.1">
+                            <button type="button" id="add-platform-btn" class="primary-btn">追加</button>
+                        </div>
                     </div>
                 </div>
 
